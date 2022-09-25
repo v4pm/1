@@ -1,0 +1,49 @@
+1. Set Up Sound
+sudo pacman -S pipewire pipewire-alsa alsa-utils
+
+2. Lock Root
+sudo passwd --lock root
+
+3. Install Firewall
+https://wiki.archlinux.org/title/nftables#Workstation
+
+4. Apparmor
+https://wiki.archlinux.org/title/AppArmor
+
+5. Enable Time Synchronization
+sudo systemctl enable --now systemd-timesyncd.service
+
+6. Power Management
+sudo pacman -S tlp tlp-rdw
+sudo systemctl enable --now tlp.service 
+# to run power optimizations automatically
+sudo systemctl enable --now NetworkManager-dispatcher.service
+# prevents conflicts
+sudo tlp-stat 
+# follow any recommendations there
+
+7. Enable fstrim
+sudo systemctl enable --now fstrim.timer
+# for ssd only
+
+8. Create swap file
+https://wiki.archlinux.org/title/swap
+
+9. Add keyboard layout
+/etc/X11/xorg.conf.d/00-keyboard.conf
+
+Section "InputClass"
+        Identifier "system-keyboard"
+        MatchIsKeyboard "on"
+        Option "XkbLayout" "us,kz"
+        Option "XkbModel" "pc104"
+        Option "XkbVariant" ","
+        Option "XkbOptions" "grp:alt_shift_toggle"
+EndSection
+
+10. Auto login
+/etc/systemd/system/getty@tty1.service.d/autologin.conf
+
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty -o '-p -f -- \\u' --noclear --autologin fam %I $TERM

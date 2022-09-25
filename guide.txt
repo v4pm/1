@@ -1,0 +1,57 @@
+
+iwctl
+
+timedatectl set-ntp true
+
+lsblk 
+cgdisk /dev/$disk
+
+cryptsetup -y --use-random luksFormat /dev/$root_partition
+cryptsetup open /dev/nvme0n1p2 cryptroot
+
+mkfs.fat -F32 /dev/$boot_partition
+mkfs.ext4 /dev/mapper/cryptroot
+
+mount /dev/mapper/cryptroot /mnt
+mount --mkdir /dev/$boot_partition /mnt/boot
+
+pacman -Su archlinux-keyring
+pacstrap /mnt linux linux-firmware base sudo grub efibootmgr vim neovim intel-ucode/amd-ucode networkmanager
+
+genfstab -U /mnt >> /mnt/etc/fstab
+
+arch-chroot /mnt
+
+hwclock --systohc
+
+vim /etc/locale.gen
+locale-gen
+echo 'LANG=en_US.UTF-8' > /etc/locale.conf
+echo 'arch' > /etc/hostname
+
+vim /etc/mkinitcpio.conf
+# add encrypt before filesystems and move keyboard between autodetect and modconf
+mkinitcpio -P
+
+blkid >> /tmp/1
+
+vim /etc/default/grub
+# change GRUB_CMDLINE_LINUX="" to GRUB_CMDLINE_LINUX="cryptdevice=UUID=xxxx:cryptroot root=/dev/mapper/cryptroot"
+# xxxx is the UUID of the /dev/$root_partition partition
+
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+grub-mkconfig -o /boot/grub/grub.cfg
+
+systemctl enable NetworkManager
+
+useradd -m -G wheel $new_user
+passwd $new_user
+
+visudo
+# uncomment %wheel ALL=(ALL) ALL
+
+exit
+umount -R /mnt
+reboot
+
+
